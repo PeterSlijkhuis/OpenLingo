@@ -152,6 +152,17 @@ progress { width: 160px; accent-color: var(--accent); }
 .reading { background: var(--surface-2); border-radius: 12px; padding: 16px; margin-top: 12px; }
 .reading p:last-child { margin: 0; }
 
+.pictures { display: grid; gap: 10px; margin: 12px 0; }
+.pictures.n2 { grid-template-columns: repeat(2, 1fr); }
+.pictures.n4 { grid-template-columns: repeat(2, 1fr); }
+.pictures figure { position: relative; margin: 0; }
+.pictures img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--border); }
+.pictures.n1 img { max-width: 520px; }
+.pictures figcaption {
+  position: absolute; top: 8px; left: 8px; display: grid; place-items: center; width: 26px; height: 26px;
+  border-radius: 999px; background: var(--accent); color: #fff; font-size: 0.8rem; font-weight: 700;
+}
+
 /* Quizzes */
 .q { font-weight: 600; }
 .qnum {

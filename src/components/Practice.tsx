@@ -1,17 +1,27 @@
 import { useState } from 'react'
-import { coachAnswer, generateTask } from '../lib/coach'
+import { coachAnswer, generateTask, pictureKind } from '../lib/coach'
 import { kindsFor } from '../lib/exams'
 import { adapt } from '../lib/progress'
 import type { Settings } from '../lib/storage'
-import type { Attempt, Feedback, SpeakingTask, TaskKind } from '../lib/types'
+import { PICTURE_MODES, type Attempt, type Feedback, type PictureMode, type SpeakingTask, type TaskKind } from '../lib/types'
 import { FeedbackView } from './FeedbackView'
-import { kindLabel, TaskRunner, type Answer } from './TaskRunner'
+import { kindLabel, Pictures, TaskRunner, type Answer } from './TaskRunner'
 
 interface Props {
   settings: Settings
   history: Attempt[]
   onAttempt: (attempt: Attempt) => void
 }
+
+type Choice = TaskKind | PictureMode
+
+export const PICTURE_LABEL: Record<PictureMode, string> = {
+  describe: 'Describe a picture',
+  compare: 'Compare two pictures',
+  story: 'Picture story (4 pictures)',
+}
+
+const isPicture = (c: Choice): c is PictureMode => (PICTURE_MODES as readonly string[]).includes(c)
 
 export function toAttempt(task: SpeakingTask, feedback: Feedback): Attempt {
   return {
@@ -28,7 +38,8 @@ export function toAttempt(task: SpeakingTask, feedback: Feedback): Attempt {
 /** Endless practice: a new situation adapted to recent results, coaching after every answer. */
 export function Practice({ settings, history, onAttempt }: Props) {
   const kinds = kindsFor(settings.level)
-  const [kind, setKind] = useState<TaskKind | 'mix'>('mix')
+  const choices: Choice[] = [...kinds, ...PICTURE_MODES]
+  const [kind, setKind] = useState<Choice | 'mix'>('mix')
   const [task, setTask] = useState<SpeakingTask | null>(null)
   const [round, setRound] = useState(0)
   const [answer, setAnswer] = useState<Answer | null>(null)
@@ -41,10 +52,12 @@ export function Practice({ settings, history, onAttempt }: Props) {
     setError('')
     setAnswer(null)
     setFeedback(null)
-    setBusy('Creating a new situation…')
     try {
-      const k = kind === 'mix' ? kinds[Math.floor(Math.random() * kinds.length)] : kind
-      const t = await generateTask(settings, settings.level, k, adapt(history, settings.level), recent)
+      const c = kind === 'mix' ? choices[Math.floor(Math.random() * choices.length)] : kind
+      const picture = isPicture(c) ? c : undefined
+      setBusy(picture ? 'Drawing the pictures…' : 'Creating a new situation…')
+      const k = picture ? pictureKind(settings.level, picture) : (c as TaskKind)
+      const t = await generateTask(settings, settings.level, k, adapt(history, settings.level), recent, undefined, picture)
       setTask(t)
       setRecent((r) => [...r, t.question].slice(-8))
       setRound((n) => n + 1)
@@ -81,11 +94,11 @@ export function Practice({ settings, history, onAttempt }: Props) {
       <div className="row">
         <label>
           Task type{' '}
-          <select value={kind} onChange={(e) => setKind(e.target.value as TaskKind | 'mix')}>
+          <select value={kind} onChange={(e) => setKind(e.target.value as Choice | 'mix')}>
             <option value="mix">Mixed, like the exam</option>
-            {kinds.map((k) => (
-              <option key={k} value={k}>
-                {kindLabel(k)}
+            {choices.map((c) => (
+              <option key={c} value={c}>
+                {isPicture(c) ? PICTURE_LABEL[c] : kindLabel(c)}
               </option>
             ))}
           </select>
@@ -105,6 +118,7 @@ export function Practice({ settings, history, onAttempt }: Props) {
         <section className="card task">
           <p className="eyebrow">{`${task.level} · ${kindLabel(task.kind)} · ${task.topic}`}</p>
           <p className="situation" lang="nl">{task.situation}</p>
+          <Pictures task={task} />
           <p className="question" lang="nl">{task.question}</p>
         </section>
       )}

@@ -1,5 +1,5 @@
 import { EXAMS } from './exams'
-import { chatJson, type ChatMessage, type LlmSettings } from './llm'
+import { chatJson, generateImage, type ChatMessage, type LlmSettings } from './llm'
 import type { Adaptation } from './progress'
 import {
   CRITERIA,
@@ -7,6 +7,8 @@ import {
   type CriterionScore,
   type Feedback,
   type Level,
+  type Picture,
+  type PictureMode,
   type Score,
   type SpeakingTask,
   type TaskKind,
@@ -50,11 +52,44 @@ const DIFFICULTY_GUIDE = {
   stretch: 'The learner has been scoring well: aim at the upper end of the level with a less predictable situation.',
 } as const
 
+export const PICTURE_COUNT: Record<PictureMode, number> = { describe: 1, compare: 2, story: 4 }
+
+const PICTURE_GUIDE: Record<PictureMode, string> = {
+  describe:
+    'The task is about one picture of an everyday scene. The candidate describes what they see ' +
+    'or reacts to it (who, where, what is happening, what might happen next).',
+  compare:
+    'The task shows two pictures of two options (e.g. two ways to travel, two jobs, two houses). ' +
+    'The candidate picks one and explains why.',
+  story:
+    'The task shows four pictures that tell a short story in order. The candidate tells what happens ' +
+    'in the right order, using linking words (eerst, daarna, toen, uiteindelijk).',
+}
+
+/** Answer time category for a picture task at a level. */
+export function pictureKind(level: Level, mode: PictureMode): TaskKind {
+  return mode === 'story' && (EXAMS[level].composition.long ?? 0) > 0 ? 'long' : 'medium'
+}
+
+function pictureRules(mode: PictureMode): string[] {
+  const n = PICTURE_COUNT[mode]
+  return [
+    PICTURE_GUIDE[mode],
+    `Also return "pictures": exactly ${n} item${n > 1 ? 's' : ''}, in order, each {"description": string, "svg": string}.`,
+    'description: in Dutch, exactly what the picture shows (people, what they do, objects, place). ' +
+      'The examiner uses it, and it is used to create a photo, so keep the same people recognisable across pictures.',
+    'svg: a simple illustration of the same scene as one standalone <svg> element with viewBox="0 0 400 300": ' +
+      'flat colours, simple shapes, a light background, no text, no scripts, at most 3000 characters.',
+    'The situation and question must not describe what is in the pictures: the candidate has to look.',
+  ]
+}
+
 export function buildTaskPrompt(
   level: Level,
   kind: TaskKind,
   adaptation: Adaptation,
   recentQuestions: string[],
+  picture?: PictureMode,
 ): ChatMessage[] {
   const system = [
     `You write original speaking tasks for practising the Dutch exam "${EXAMS[level].name}".`,
@@ -65,6 +100,7 @@ export function buildTaskPrompt(
     'Write the situation and question in Dutch at the target level.',
     'Reply with JSON only: {"situation": string, "question": string, "contentPoints": string[]}.',
     'contentPoints lists, in Dutch, the 2 to 4 things a complete answer must contain.',
+    ...(picture ? pictureRules(picture) : []),
   ].join('\n')
 
   const user = [
@@ -93,12 +129,35 @@ function str(v: unknown, field: string): string {
   return v.trim()
 }
 
+export function svgDataUrl(svg: string): string {
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
+}
+
+function parsePictures(raw: unknown, count: number): Picture[] {
+  const pictures = (Array.isArray(raw) ? raw : [])
+    .filter((p): p is Record<string, unknown> => !!p && typeof p === 'object')
+    .map((p) => {
+      const svg = String(p.svg ?? '')
+      const start = svg.indexOf('<svg')
+      const end = svg.lastIndexOf('</svg>')
+      return {
+        description: String(p.description ?? '').trim(),
+        // Shown through <img>, so scripts inside a generated SVG never run.
+        src: start >= 0 && end > start ? svgDataUrl(svg.slice(start, end + 6)) : '',
+      }
+    })
+    .filter((p) => p.description && p.src)
+  if (pictures.length < count) throw new Error('Generated task is missing its pictures. Try again.')
+  return pictures.slice(0, count)
+}
+
 export function parseTask(
   raw: unknown,
   level: Level,
   kind: TaskKind,
   topic: string,
   id: string,
+  picture?: PictureMode,
 ): SpeakingTask {
   const o = (raw ?? {}) as Record<string, unknown>
   const points = Array.isArray(o.contentPoints)
@@ -113,19 +172,49 @@ export function parseTask(
     situation: str(o.situation, 'situation'),
     question: str(o.question, 'question'),
     contentPoints: points.map((p) => p.trim()),
+    ...(picture ? { pictures: parsePictures(o.pictures, PICTURE_COUNT[picture]) } : {}),
+  }
+}
+
+export interface TaskSettings extends LlmSettings {
+  pictureSource?: 'drawings' | 'ai'
+  imageModel?: string
+}
+
+export function imagePrompt(pictures: Picture[], i: number): string {
+  const story = pictures.length > 1 ? `This is picture ${i + 1} of ${pictures.length}. All pictures: ${pictures.map((p) => p.description).join(' | ')}. ` : ''
+  return (
+    'A clear, realistic photo of an everyday scene in the Netherlands, for a Dutch language exam. ' +
+    `No text, letters or signs with words. ${story}Show: ${pictures[i].description}`
+  )
+}
+
+/** Swap the drawings for AI images. Keeps the drawings, with a note, if that fails. */
+async function illustrate(settings: TaskSettings, task: SpeakingTask, fetchImpl?: typeof fetch): Promise<SpeakingTask> {
+  const pictures = task.pictures ?? []
+  try {
+    const srcs = await Promise.all(
+      pictures.map((_, i) => generateImage(settings, settings.imageModel || 'gpt-image-1', imagePrompt(pictures, i), fetchImpl)),
+    )
+    return { ...task, pictures: pictures.map((p, i) => ({ ...p, src: srcs[i] })) }
+  } catch (e) {
+    const why = e instanceof Error ? e.message : String(e)
+    return { ...task, pictureNote: `AI images failed, showing drawings instead. ${why}` }
   }
 }
 
 export async function generateTask(
-  settings: LlmSettings,
+  settings: TaskSettings,
   level: Level,
   kind: TaskKind,
   adaptation: Adaptation,
   recentQuestions: string[],
   fetchImpl?: typeof fetch,
+  picture?: PictureMode,
 ): Promise<SpeakingTask> {
-  const raw = await chatJson(settings, buildTaskPrompt(level, kind, adaptation, recentQuestions), fetchImpl)
-  return parseTask(raw, level, kind, adaptation.topic, newId(`${level}-${kind}`))
+  const raw = await chatJson(settings, buildTaskPrompt(level, kind, adaptation, recentQuestions, picture), fetchImpl)
+  const task = parseTask(raw, level, kind, adaptation.topic, newId(`${level}-${kind}`), picture)
+  return picture && settings.pictureSource === 'ai' ? illustrate(settings, task, fetchImpl) : task
 }
 
 export interface AnswerInfo {
@@ -175,9 +264,14 @@ export function buildFeedbackPrompt(
     `Situation: ${task.situation}`,
     `Question: ${task.question}`,
     `Content points: ${task.contentPoints.join('; ')}`,
+    task.pictures?.length
+      ? `Pictures shown to the candidate, in order:\n${task.pictures.map((p, i) => `${i + 1}. ${p.description}`).join('\n')}`
+      : '',
     `Answer time used: ${Math.round(answer.seconds)} of ${answer.allowedSeconds} seconds.`,
     `Transcript: """${answer.transcript.trim() || '(no speech recognised)'}"""`,
-  ].join('\n')
+  ]
+    .filter(Boolean)
+    .join('\n')
 
   return [
     { role: 'system', content: system },

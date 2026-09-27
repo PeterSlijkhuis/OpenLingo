@@ -40,3 +40,36 @@ export async function chatJson(
     throw new Error('The language model did not return valid JSON.')
   }
 }
+
+/** Generate one image with an OpenAI-compatible images endpoint; returns a URL usable in <img>. */
+export async function generateImage(
+  settings: LlmSettings,
+  model: string,
+  prompt: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<string> {
+  const res = await fetchImpl(`${settings.baseUrl.replace(/\/+$/, '')}/images/generations`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${settings.apiKey}`,
+    },
+    body: JSON.stringify({
+      model,
+      prompt,
+      n: 1,
+      size: '1024x1024',
+      // Low quality is plenty for exam practice and keeps each picture at about a cent.
+      ...(model.startsWith('gpt-image') ? { quality: 'low' } : { response_format: 'b64_json' }),
+    }),
+  })
+  if (!res.ok) {
+    const detail = await res.text().catch(() => '')
+    throw new Error(`Image request failed (${res.status}). ${detail.slice(0, 300)}`)
+  }
+  const data = (await res.json()) as { data?: { b64_json?: string; url?: string }[] }
+  const img = data.data?.[0]
+  if (img?.b64_json) return `data:image/png;base64,${img.b64_json}`
+  if (img?.url) return img.url
+  throw new Error('The image service returned no image.')
+}

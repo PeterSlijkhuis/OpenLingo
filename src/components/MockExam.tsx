@@ -1,9 +1,9 @@
 import { useRef, useState } from 'react'
-import { coachAnswer, generateTask, passes } from '../lib/coach'
+import { coachAnswer, generateTask, passes, pictureKind } from '../lib/coach'
 import { EXAMS, examSequence } from '../lib/exams'
 import { adapt } from '../lib/progress'
 import type { Settings } from '../lib/storage'
-import type { Attempt, Feedback, SpeakingTask } from '../lib/types'
+import { PICTURE_MODES, type Attempt, type Feedback, type SpeakingTask } from '../lib/types'
 import { FeedbackView } from './FeedbackView'
 import { toAttempt } from './Practice'
 import { TaskRunner, type Answer } from './TaskRunner'
@@ -33,7 +33,10 @@ export function MockExam({ settings, history, onAttempt }: Props) {
   const questions = useRef<string[]>([])
 
   function makeTask(i: number): Promise<SpeakingTask> {
-    const p = generateTask(settings, settings.level, sequence[i], adapt(history, settings.level), questions.current.slice(-12))
+    // The A2 exam is built on pictures and videos: every other question uses pictures.
+    const picture = settings.level === 'A2' && i % 2 === 0 ? PICTURE_MODES[(i / 2) % PICTURE_MODES.length] : undefined
+    const kind = picture ? pictureKind(settings.level, picture) : sequence[i]
+    const p = generateTask(settings, settings.level, kind, adapt(history, settings.level), questions.current.slice(-12), undefined, picture)
     void p.then((t) => questions.current.push(t.question)).catch(() => {})
     return p
   }
