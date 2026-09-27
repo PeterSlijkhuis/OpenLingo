@@ -95,7 +95,9 @@ export async function generateSpeech(
       response_format: 'mp3',
       // Only the gpt-4o speech models take instructions; older ones take a speed instead.
       ...(model.startsWith('gpt-4o')
-        ? { instructions: 'Speak Dutch as a native speaker from the Netherlands. Speak slowly and clearly, for language learners, with short pauses between sentences.' }
+        ? { instructions: 'Voice: a native Dutch speaker from the Netherlands in a real, everyday conversation. ' +
+              'Tone: warm, natural and expressive, with lively intonation, never monotone. ' +
+              'Pace: a little slower than normal, clear enough for a language learner.' }
         : { speed: 0.9 }),
     }),
   })
