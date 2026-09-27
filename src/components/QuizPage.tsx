@@ -61,8 +61,14 @@ export function QuizPage({ skill, settings, history, onAttempt }: Props) {
       if (settings.voiceSource === 'ai') await playWithAiVoices(settings, quiz.text, quiz.speakers)
       else await speakScript(quiz.text)
     } catch (e) {
-      setVoiceNote(`AI voices failed, using your device's voices instead. ${e instanceof Error ? e.message : ''}`)
-      await speakScript(quiz.text)
+      const why = e instanceof Error ? e.message : String(e)
+      // Without a Dutch device voice the fallback reads Dutch with an English voice: worse than nothing.
+      if (hasDutchVoice()) {
+        setVoiceNote(`AI voices failed, using your device's Dutch voice instead. ${why}`)
+        await speakScript(quiz.text)
+      } else {
+        setVoiceNote(`AI voices failed, so the fragment could not be played. ${why}`)
+      }
     }
     setPlaying(false)
   }

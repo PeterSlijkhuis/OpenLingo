@@ -93,8 +93,10 @@ export async function generateSpeech(
       voice,
       input,
       response_format: 'mp3',
-      // Only the gpt-4o speech models take instructions; older ones reject the field.
-      ...(model.startsWith('gpt-4o') ? { instructions: 'Speak Dutch as a native speaker from the Netherlands, at a natural, calm pace.' } : {}),
+      // Only the gpt-4o speech models take instructions; older ones take a speed instead.
+      ...(model.startsWith('gpt-4o')
+        ? { instructions: 'Speak Dutch as a native speaker from the Netherlands. Speak slowly and clearly, for language learners, with short pauses between sentences.' }
+        : { speed: 0.9 }),
     }),
   })
   if (!res.ok) {
