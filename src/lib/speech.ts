@@ -25,7 +25,7 @@ function dutchVoices(): SpeechSynthesisVoice[] {
  * Read a script aloud with the browser's own Dutch voices. Different speakers get different
  * voices when the device has several, otherwise a different pitch.
  */
-export function speakScript(script: string, rate = 0.95): Promise<void> {
+export function speakScript(script: string, rate = 0.85): Promise<void> {
   speechSynthesis.cancel()
   const voices = dutchVoices()
   const speakers: string[] = []
@@ -99,7 +99,9 @@ export async function playWithAiVoices(settings: VoiceSettings, script: string, 
     cache.set(key, urls)
   }
   const urls = await cache.get(key)!
-  for (const url of urls) {
+  for (const [i, url] of urls.entries()) {
+    // A short pause between turns, so speakers don't run into each other.
+    if (i) await new Promise((r) => setTimeout(r, 600))
     if (cancelled) return
     await new Promise<void>((resolve) => {
       current = new Audio(url)
