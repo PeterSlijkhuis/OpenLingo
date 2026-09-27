@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { adapt, criterionAverages, TOPICS } from '../src/lib/progress'
+import { adapt, criterionAverages, doneToday, streak, TOPICS } from '../src/lib/progress'
 import type { Attempt, Criterion, Level, Score } from '../src/lib/types'
 
 function attempt(level: Level, topic: string, s: Partial<Record<Criterion, Score>> = {}): Attempt {
@@ -56,5 +56,22 @@ describe('criterionAverages', () => {
     const avg = criterionAverages([attempt('B1', 'werk', { inhoud: 3 }), attempt('B1', 'werk', { inhoud: 1 })])
     expect(avg.inhoud).toBe(2)
     expect(avg.grammatica).toBe(2)
+  })
+})
+
+describe('streak and daily count', () => {
+  const day = (d: number, h = 12) => new Date(2026, 8, d, h).getTime()
+  const at = (t: number) => ({ taskId: 'x', level: 'B1' as const, topic: 't', at: t })
+
+  it('counts consecutive practice days up to today or yesterday', () => {
+    const history = [at(day(20)), at(day(22)), at(day(23, 9)), at(day(23, 20)), at(day(24))]
+    expect(streak(history, day(24, 22))).toBe(3)
+    expect(streak(history, day(25, 8))).toBe(3)
+    expect(streak(history, day(26))).toBe(0)
+    expect(streak([], day(26))).toBe(0)
+  })
+
+  it('counts exercises finished today', () => {
+    expect(doneToday([at(day(23, 9)), at(day(23, 20)), at(day(22))], day(23, 21))).toBe(2)
   })
 })
