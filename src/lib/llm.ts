@@ -73,3 +73,33 @@ export async function generateImage(
   if (img?.url) return img.url
   throw new Error('The image service returned no image.')
 }
+
+/** Read text aloud with an OpenAI-compatible speech endpoint; returns MP3 audio. */
+export async function generateSpeech(
+  settings: LlmSettings,
+  model: string,
+  voice: string,
+  input: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<Blob> {
+  const res = await fetchImpl(`${settings.baseUrl.replace(/\/+$/, '')}/audio/speech`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${settings.apiKey}`,
+    },
+    body: JSON.stringify({
+      model,
+      voice,
+      input,
+      response_format: 'mp3',
+      // Only the gpt-4o speech models take instructions; older ones reject the field.
+      ...(model.startsWith('gpt-4o') ? { instructions: 'Speak Dutch as a native speaker from the Netherlands, at a natural, calm pace.' } : {}),
+    }),
+  })
+  if (!res.ok) {
+    const detail = await res.text().catch(() => '')
+    throw new Error(`Speech request failed (${res.status}). ${detail.slice(0, 300)}`)
+  }
+  return res.blob()
+}

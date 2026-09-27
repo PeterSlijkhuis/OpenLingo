@@ -1,3 +1,6 @@
+import { generateSpeech, type LlmSettings } from './llm'
+import type { Gender } from './types'
+
 /** Split a listening script into turns; "Naam: tekst" lines become separate speakers. */
 export function scriptTurns(script: string): { speaker: string; text: string }[] {
   return script
@@ -47,9 +50,62 @@ export function speakScript(script: string, rate = 0.95): Promise<void> {
 }
 
 export function stopSpeaking(): void {
+  cancelled = true
+  current?.pause()
   if (speechSupported()) speechSynthesis.cancel()
 }
 
 export function hasDutchVoice(): boolean {
   return speechSupported() && dutchVoices().length > 0
+}
+
+/** Two male and two female voices of the OpenAI speech API. */
+export const AI_VOICES: Record<Gender, string[]> = { male: ['onyx', 'ash'], female: ['nova', 'shimmer'] }
+
+/** Give every speaker a voice in order of appearance, matching gender when known, alternating otherwise. */
+export function castVoices(turns: { speaker: string }[], genders: Record<string, Gender> = {}): Record<string, string> {
+  const used: Record<Gender, number> = { male: 0, female: 0 }
+  const cast: Record<string, string> = {}
+  let n = 0
+  for (const { speaker } of turns) {
+    if (speaker in cast) continue
+    const g = genders[speaker] ?? (n++ % 2 ? 'male' : 'female')
+    cast[speaker] = AI_VOICES[g][used[g]++ % AI_VOICES[g].length]
+  }
+  return cast
+}
+
+let current: HTMLAudioElement | null = null
+let cancelled = false
+// Audio per script, so "Listen again" does not pay twice.
+const cache = new Map<string, Promise<string[]>>()
+
+export interface VoiceSettings extends LlmSettings {
+  voiceModel: string
+}
+
+/** Read a script aloud with AI voices, one voice per speaker. Rejects if the speech service fails. */
+export async function playWithAiVoices(settings: VoiceSettings, script: string, genders?: Record<string, Gender>): Promise<void> {
+  stopSpeaking()
+  cancelled = false
+  const turns = scriptTurns(script)
+  const key = `${settings.voiceModel}|${script}`
+  if (!cache.has(key)) {
+    const cast = castVoices(turns, genders)
+    const urls = Promise.all(
+      turns.map((t) => generateSpeech(settings, settings.voiceModel, cast[t.speaker], t.text).then((b) => URL.createObjectURL(b))),
+    )
+    urls.catch(() => cache.delete(key))
+    cache.set(key, urls)
+  }
+  const urls = await cache.get(key)!
+  for (const url of urls) {
+    if (cancelled) return
+    await new Promise<void>((resolve) => {
+      current = new Audio(url)
+      current.onended = current.onerror = current.onpause = () => resolve()
+      current.play().catch(() => resolve())
+    })
+  }
+  current = null
 }

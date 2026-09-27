@@ -438,7 +438,8 @@ const QUIZ_GUIDE: Record<QuizSkill, string> = {
   luisteren:
     'A listening exercise: the script of a realistic spoken fragment (a conversation between two people, ' +
     'a phone call, an announcement or a short radio item). Write it as natural spoken Dutch; for a ' +
-    'conversation start each turn with the speaker name and a colon. It will be read aloud by a speech synthesizer.',
+    'conversation start each turn with the speaker name and a colon. It will be read aloud by a speech synthesizer. ' +
+    'Also return "speakers": an object mapping each speaker name to "male" or "female".',
   knm:
     'A KNM exercise (Kennis van de Nederlandse Maatschappij): practical questions about how things work in the ' +
     'Netherlands. Only ask about stable, well-established facts and customs; avoid numbers that change yearly. ' +
@@ -506,7 +507,10 @@ export function parseQuiz(raw: unknown, skill: QuizSkill, level: Level, topic: s
   if (questions.length === 0) throw new Error('The generated exercise has no valid questions.')
   const text = typeof o.text === 'string' ? o.text.trim() : ''
   if (skill !== 'knm' && !text) throw new Error('The generated exercise is missing its text.')
-  return { id, skill, level, topic, title: str(o.title, 'title'), text, questions }
+  const speakers = Object.fromEntries(
+    Object.entries((o.speakers ?? {}) as Record<string, unknown>).filter(([, g]) => g === 'male' || g === 'female'),
+  ) as Quiz['speakers']
+  return { id, skill, level, topic, title: str(o.title, 'title'), text, questions, speakers }
 }
 
 export async function generateQuiz(

@@ -10,6 +10,9 @@ export interface Settings extends LlmSettings {
   /** How pictures for picture tasks are made: free drawings or AI images on the user's key. */
   pictureSource: 'drawings' | 'ai'
   imageModel: string
+  /** Listening voices: natural AI voices on the user's key, or the device's own voices. */
+  voiceSource: 'ai' | 'device'
+  voiceModel: string
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -21,6 +24,8 @@ export const DEFAULT_SETTINGS: Settings = {
   whisperModel: 'small',
   pictureSource: 'drawings',
   imageModel: 'gpt-image-1',
+  voiceSource: 'ai',
+  voiceModel: 'gpt-4o-mini-tts',
 }
 
 const SETTINGS_KEY = 'openlingo.settings'

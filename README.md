@@ -41,9 +41,9 @@ and [inburgeren.nl](https://www.inburgeren.nl/examen-doen/inhoud-taalexamens-a2-
   voice never leaves your device.
 - **Pictures, free or realistic.** Picture tasks come with simple drawings for free. In Settings you
   can switch to AI images made with your own key, at about a cent per picture.
-- **Listening uses your device's voices.** Fragments are read aloud with the browser's built-in
-  Dutch voice. If your device has no Dutch voice installed, add one in your system's speech
-  settings.
+- **Natural listening voices.** Fragments are read by two male and two female AI voices on your
+  key, about 1 to 2 cents per fragment, so each speaker sounds different. You can switch to your
+  device's own voices for free in Settings.
 - **Your progress stays with you.** Results are saved in your browser only. See them under
   *Progress*.
 
