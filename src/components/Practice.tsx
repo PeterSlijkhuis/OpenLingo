@@ -15,6 +15,7 @@ interface Props {
 
 export function toAttempt(task: SpeakingTask, feedback: Feedback): Attempt {
   return {
+    skill: 'spreken',
     taskId: task.id,
     level: task.level,
     kind: task.kind,
@@ -102,7 +103,7 @@ export function Practice({ settings, history, onAttempt }: Props) {
 
       {task && answer && (
         <section className="card task">
-          <p className="muted">{`${task.level} · ${kindLabel(task.kind)} · ${task.topic}`}</p>
+          <p className="eyebrow">{`${task.level} · ${kindLabel(task.kind)} · ${task.topic}`}</p>
           <p className="situation" lang="nl">{task.situation}</p>
           <p className="question" lang="nl">{task.question}</p>
         </section>

@@ -10,6 +10,10 @@ import {
   type Score,
   type SpeakingTask,
   type TaskKind,
+  type Quiz,
+  type QuizQuestion,
+  type QuizSkill,
+  type WritingTask,
 } from './types'
 
 export type FeedbackLanguage = 'en' | 'nl'
@@ -80,6 +84,10 @@ export function buildTaskPrompt(
   ]
 }
 
+function newId(prefix: string): string {
+  return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`
+}
+
 function str(v: unknown, field: string): string {
   if (typeof v !== 'string' || !v.trim()) throw new Error(`Generated task is missing "${field}".`)
   return v.trim()
@@ -117,8 +125,7 @@ export async function generateTask(
   fetchImpl?: typeof fetch,
 ): Promise<SpeakingTask> {
   const raw = await chatJson(settings, buildTaskPrompt(level, kind, adaptation, recentQuestions), fetchImpl)
-  const id = `${level}-${kind}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`
-  return parseTask(raw, level, kind, adaptation.topic, id)
+  return parseTask(raw, level, kind, adaptation.topic, newId(`${level}-${kind}`))
 }
 
 export interface AnswerInfo {
@@ -129,29 +136,39 @@ export interface AnswerInfo {
   allowedSeconds: number
 }
 
+const EXAMINER_RULES = [
+  'Judge the answer against what is required to pass at this level, not against a native speaker.',
+  'Score each criterion 0-3: 0 = insufficient, 1 = almost, 2 = sufficient (pass), 3 = good.',
+  'Criteria: inhoud (answers the task and covers the content points, suitable for the situation),',
+  'woordenschat (range and accuracy of words), grammatica (sentence structure, verb forms, word order),',
+  'samenhang (logical order and linking words).',
+]
+
+function feedbackFormat(language: FeedbackLanguage, modelAnswerNote: string): string[] {
+  const lang = language === 'nl' ? "Dutch (simple, at the learner's level)" : 'English'
+  return [
+    `Write summary, comments, "why" and coachTip in ${lang}. Write "better" and modelAnswer in Dutch.`,
+    'Reply with JSON only:',
+    '{"scores":[{"criterion":"inhoud"|"woordenschat"|"grammatica"|"samenhang","score":0-3,"comment":string}],',
+    '"summary":string,"corrections":[{"said":string,"better":string,"why":string}],"modelAnswer":string,"coachTip":string}',
+    `corrections: at most 5, "said" quoted from the answer. modelAnswer: ${modelAnswerNote}`,
+    'coachTip: the single most useful thing to practise next, concrete and encouraging.',
+  ]
+}
+
 export function buildFeedbackPrompt(
   task: SpeakingTask,
   answer: AnswerInfo,
   language: FeedbackLanguage,
 ): ChatMessage[] {
-  const lang = language === 'nl' ? 'Dutch (simple, at the learner\'s level)' : 'English'
   const system = [
     `You are an experienced NT2 examiner and speaking coach for "${EXAMS[task.level].name}".`,
     LEVEL_GUIDE[task.level],
-    'Judge the answer against what is required to pass at this level, not against a native speaker.',
-    'Score each criterion 0-3: 0 = insufficient, 1 = almost, 2 = sufficient (pass), 3 = good.',
-    'Criteria: inhoud (answers the question and covers the content points, suitable for the situation),',
-    'woordenschat (range and accuracy of words), grammatica (sentence structure, verb forms, word order),',
-    'samenhang (logical order and linking words).',
+    ...EXAMINER_RULES,
     'The transcript comes from automatic speech recognition: ignore punctuation and capitals.',
     'Garbled or odd words may be recognition or pronunciation problems; mention them as possible pronunciation issues rather than grammar errors.',
     'An empty or nearly empty answer scores 0 for inhoud.',
-    `Write summary, comments, "why" and coachTip in ${lang}. Write "better" and modelAnswer in Dutch.`,
-    'Reply with JSON only:',
-    '{"scores":[{"criterion":"inhoud"|"woordenschat"|"grammatica"|"samenhang","score":0-3,"comment":string}],',
-    '"summary":string,"corrections":[{"said":string,"better":string,"why":string}],"modelAnswer":string,"coachTip":string}',
-    'corrections: at most 5, "said" quoted from the transcript. modelAnswer: fits the time limit at the target level.',
-    'coachTip: the single most useful thing to practise next, concrete and encouraging.',
+    ...feedbackFormat(language, 'fits the time limit at the target level.'),
   ].join('\n')
 
   const user = [
@@ -208,4 +225,210 @@ export async function coachAnswer(
 /** Pass/fail reading of a set of scores: every criterion must reach 2 ("sufficient"). */
 export function passes(scores: CriterionScore[]): boolean {
   return scores.every((s) => s.score >= 2)
+}
+
+// ── Writing ──────────────────────────────────────────────────────────────────
+
+const WRITING_GUIDE: Record<Level, string> = {
+  A2: 'An A2 inburgering task: a short note, email, message or form answer of about 30-60 words.',
+  B1: 'A Staatsexamen I task: an email or message of about 60-120 words, e.g. asking, complaining, explaining or giving an opinion.',
+  B2: 'A Staatsexamen II task: a longer email, letter or short argumentative text of about 150-250 words.',
+}
+
+const WORD_RANGE: Record<Level, [number, number]> = { A2: [30, 60], B1: [60, 120], B2: [150, 250] }
+
+export function buildWritingTaskPrompt(
+  level: Level,
+  adaptation: Adaptation,
+  recentTasks: string[],
+): ChatMessage[] {
+  const system = [
+    `You write original writing tasks for practising the Dutch exam at level ${level}.`,
+    'Never copy tasks from official or published exams; invent realistic situations set in the Netherlands.',
+    LEVEL_GUIDE[level],
+    WRITING_GUIDE[level],
+    'Write the situation and task in Dutch at the target level, addressing the candidate as "u".',
+    'Reply with JSON only: {"situation": string, "task": string, "contentPoints": string[]}.',
+    'contentPoints lists, in Dutch, the 2 to 4 things the text must contain.',
+  ].join('\n')
+  const user = [
+    `Topic: ${adaptation.topic}.`,
+    `Focus: ${FOCUS_GUIDE[adaptation.focus]}`,
+    `Difficulty: ${DIFFICULTY_GUIDE[adaptation.difficulty]}`,
+    recentTasks.length ? `Do not repeat these recent tasks:\n- ${recentTasks.join('\n- ')}` : '',
+  ]
+    .filter(Boolean)
+    .join('\n')
+  return [
+    { role: 'system', content: system },
+    { role: 'user', content: user },
+  ]
+}
+
+export function parseWritingTask(raw: unknown, level: Level, topic: string, id: string): WritingTask {
+  const o = (raw ?? {}) as Record<string, unknown>
+  const points = Array.isArray(o.contentPoints)
+    ? o.contentPoints.filter((p): p is string => typeof p === 'string' && p.trim() !== '')
+    : []
+  if (points.length === 0) throw new Error('Generated task is missing "contentPoints".')
+  const [minWords, maxWords] = WORD_RANGE[level]
+  return {
+    id,
+    level,
+    topic,
+    situation: str(o.situation, 'situation'),
+    task: str(o.task, 'task'),
+    contentPoints: points.map((p) => p.trim()),
+    minWords,
+    maxWords,
+  }
+}
+
+export async function generateWritingTask(
+  settings: LlmSettings,
+  level: Level,
+  adaptation: Adaptation,
+  recentTasks: string[],
+  fetchImpl?: typeof fetch,
+): Promise<WritingTask> {
+  const raw = await chatJson(settings, buildWritingTaskPrompt(level, adaptation, recentTasks), fetchImpl)
+  return parseWritingTask(raw, level, adaptation.topic, newId(`${level}-w`))
+}
+
+export function countWords(text: string): number {
+  return text.trim() ? text.trim().split(/\s+/).length : 0
+}
+
+export function buildWritingFeedbackPrompt(
+  task: WritingTask,
+  text: string,
+  language: FeedbackLanguage,
+): ChatMessage[] {
+  const system = [
+    `You are an experienced NT2 examiner and writing coach for the Dutch exam at level ${task.level}.`,
+    LEVEL_GUIDE[task.level],
+    ...EXAMINER_RULES,
+    'The text was typed by the candidate: count spelling and punctuation errors under grammatica.',
+    'An empty or nearly empty text scores 0 for inhoud.',
+    ...feedbackFormat(language, `a complete text of ${task.minWords}-${task.maxWords} words at the target level.`),
+  ].join('\n')
+  const user = [
+    `Situation: ${task.situation}`,
+    `Task: ${task.task}`,
+    `Content points: ${task.contentPoints.join('; ')}`,
+    `Length: ${countWords(text)} words (asked: ${task.minWords}-${task.maxWords}).`,
+    `Text: """${text.trim() || '(empty)'}"""`,
+  ].join('\n')
+  return [
+    { role: 'system', content: system },
+    { role: 'user', content: user },
+  ]
+}
+
+export async function coachWriting(
+  settings: LlmSettings,
+  task: WritingTask,
+  text: string,
+  language: FeedbackLanguage,
+  fetchImpl?: typeof fetch,
+): Promise<Feedback> {
+  return parseFeedback(await chatJson(settings, buildWritingFeedbackPrompt(task, text, language), fetchImpl))
+}
+
+// ── Reading, listening and KNM quizzes ──────────────────────────────────────
+
+const QUIZ_GUIDE: Record<QuizSkill, string> = {
+  lezen:
+    'A reading exercise: one realistic everyday text (e.g. letter, notice, website, advert, article) ' +
+    'with questions about its purpose, details, meaning and conclusions.',
+  luisteren:
+    'A listening exercise: the script of a realistic spoken fragment (a conversation between two people, ' +
+    'a phone call, an announcement or a short radio item). Write it as natural spoken Dutch; for a ' +
+    'conversation start each turn with the speaker name and a colon. It will be read aloud by a speech synthesizer.',
+  knm:
+    'A KNM exercise (Kennis van de Nederlandse Maatschappij): practical questions about how things work in the ' +
+    'Netherlands. Only ask about stable, well-established facts and customs; avoid numbers that change yearly. ' +
+    'Return an empty string for "text".',
+}
+
+const TEXT_LENGTH: Record<Level, string> = {
+  A2: 'Text of 80-150 words in short, simple sentences.',
+  B1: 'Text of 150-250 words.',
+  B2: 'Text of 250-400 words with some abstract vocabulary.',
+}
+
+export function buildQuizPrompt(
+  skill: QuizSkill,
+  level: Level,
+  adaptation: Adaptation,
+  recentTitles: string[],
+  language: FeedbackLanguage,
+): ChatMessage[] {
+  const lang = language === 'nl' ? 'simple Dutch' : 'English'
+  const system = [
+    `You write original ${skill === 'knm' ? 'KNM' : 'NT2'} practice exercises for Dutch learners at level ${level}.`,
+    'Never copy material from official or published exams.',
+    LEVEL_GUIDE[level],
+    QUIZ_GUIDE[skill],
+    skill === 'knm' ? 'Write the questions in Dutch at A2 level.' : TEXT_LENGTH[level],
+    `Write ${skill === 'knm' ? 6 : 4} multiple-choice questions in Dutch, each with 3 or 4 options and exactly one correct answer.`,
+    'Wrong options must be plausible but clearly wrong for someone who understood.',
+    `Write each explanation in ${lang}.`,
+    'Reply with JSON only: {"title": string, "text": string, "questions": [{"question": string, "options": string[], "answer": number, "explanation": string}]}.',
+    'answer is the 0-based index of the correct option.',
+  ].join('\n')
+  const user = [
+    `Topic: ${adaptation.topic}.`,
+    `Difficulty: ${DIFFICULTY_GUIDE[adaptation.difficulty]}`,
+    recentTitles.length ? `Do not repeat these recent exercises:\n- ${recentTitles.join('\n- ')}` : '',
+  ]
+    .filter(Boolean)
+    .join('\n')
+  return [
+    { role: 'system', content: system },
+    { role: 'user', content: user },
+  ]
+}
+
+export function parseQuiz(raw: unknown, skill: QuizSkill, level: Level, topic: string, id: string): Quiz {
+  const o = (raw ?? {}) as Record<string, unknown>
+  const questions: QuizQuestion[] = (Array.isArray(o.questions) ? o.questions : [])
+    .filter((q): q is Record<string, unknown> => !!q && typeof q === 'object')
+    .map((q) => ({
+      question: String(q.question ?? '').trim(),
+      options: (Array.isArray(q.options) ? q.options : []).map((x) => String(x).trim()).filter(Boolean),
+      answer: Number(q.answer),
+      explanation: String(q.explanation ?? ''),
+    }))
+    .filter(
+      (q) =>
+        q.question &&
+        q.options.length >= 2 &&
+        new Set(q.options).size === q.options.length &&
+        Number.isInteger(q.answer) &&
+        q.answer >= 0 &&
+        q.answer < q.options.length,
+    )
+  if (questions.length === 0) throw new Error('The generated exercise has no valid questions.')
+  const text = typeof o.text === 'string' ? o.text.trim() : ''
+  if (skill !== 'knm' && !text) throw new Error('The generated exercise is missing its text.')
+  return { id, skill, level, topic, title: str(o.title, 'title'), text, questions }
+}
+
+export async function generateQuiz(
+  settings: LlmSettings,
+  skill: QuizSkill,
+  level: Level,
+  adaptation: Adaptation,
+  recentTitles: string[],
+  language: FeedbackLanguage,
+  fetchImpl?: typeof fetch,
+): Promise<Quiz> {
+  const raw = await chatJson(settings, buildQuizPrompt(skill, level, adaptation, recentTitles, language), fetchImpl)
+  return parseQuiz(raw, skill, level, adaptation.topic, newId(`${level}-${skill}`))
+}
+
+/** Number of answers that match the correct option. Unanswered questions count as wrong. */
+export function scoreQuiz(quiz: Quiz, answers: (number | null)[]): number {
+  return quiz.questions.filter((q, i) => answers[i] === q.answer).length
 }

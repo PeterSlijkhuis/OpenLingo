@@ -21,7 +21,7 @@ describe('FeedbackView', () => {
     const html = renderToStaticMarkup(<FeedbackView feedback={feedback} transcript="ik werk graag" />)
     expect(html).toContain('Not yet')
     expect(html).toContain('ik werk graag')
-    expect(html).toContain('almost')
+    expect(html).toContain('Almost')
     expect(html).toContain('omdat ik het leuk vind')
     expect(html).toContain('Practise subordinate clauses.')
     expect(html).toContain('contact met klanten')
@@ -29,6 +29,6 @@ describe('FeedbackView', () => {
 
   it('says so when no speech was recognised', () => {
     const html = renderToStaticMarkup(<FeedbackView feedback={feedback} transcript="" />)
-    expect(html).toContain('No speech recognised.')
+    expect(html).toContain('Nothing recognised.')
   })
 })

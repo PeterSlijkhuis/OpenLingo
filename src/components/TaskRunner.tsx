@@ -115,7 +115,7 @@ export function TaskRunner({ task, whisperModel, onAnswer, label }: Props) {
 
   return (
     <section className="card task">
-      <p className="muted">
+      <p className="eyebrow">
         {label ?? `${task.level} · ${kindLabel(task.kind)} · ${task.topic}`}
       </p>
       <p className="situation" lang="nl">{task.situation}</p>

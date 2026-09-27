@@ -1,48 +1,80 @@
 # OpenLingo
 
-Practise the speaking part of the Dutch NT2 exams in your browser:
+**Practise every part of the Dutch NT2 exam, for free, in your browser.**
 
-- **A2**: Inburgeringsexamen Spreken
-- **B1**: Staatsexamen NT2 Programma I, Spreken
-- **B2**: Staatsexamen NT2 Programma II, Spreken
+### ▶ [Open the app: peterslijkhuis.github.io/OpenLingo](https://peterslijkhuis.github.io/OpenLingo/)
 
-You read a situation, answer out loud within the exam's time limit, and get written coaching.
+Works on phone and desktop. Nothing to install.
+
+---
+
+## What you can practise
+
+Pick your level on the home screen, then pick an exam part.
+
+| Level | Exam |
+| --- | --- |
+| **A2** | Inburgeringsexamen |
+| **B1** | Staatsexamen NT2, Programma I |
+| **B2** | Staatsexamen NT2, Programma II |
+
+| Part | What you do in the app | The real exam |
+| --- | --- | --- |
+| 🗣️ **Spreken** (speaking) | Read a situation and answer out loud within the exam's time limit. Get written feedback, corrections and a model answer. Take a full mock exam. | On a computer. B1: 8 short (20 s) and 8 medium (30 s) answers. B2: 4 short, 8 medium and 1 two-minute talk. A2: 16 questions of about a minute. |
+| ✍️ **Schrijven** (writing) | Write an email, message or short text. Get corrections, scores and a model answer. | B1/B2: 100 minutes of sentence tasks and writing tasks. A2: 4 writing tasks on paper. |
+| 📖 **Lezen** (reading) | Read an everyday text and answer multiple-choice questions, with an explanation for each answer. | B1/B2: 6 texts with 36 multiple-choice questions. A2: 65 minutes. |
+| 🎧 **Luisteren** (listening) | Listen to a conversation or announcement, answer multiple-choice questions, then read the text you heard. | B1/B2: about 40 multiple-choice questions, each fragment heard once. A2: 45 minutes. |
+| 🏛️ **KNM** (knowledge of Dutch society) | Multiple-choice questions about work, health, housing, history, government and daily life. | A separate part of inburgering. Not part of the Staatsexamen. |
+
+Exam formats come from [staatsexamensnt2.nl](https://www.staatsexamensnt2.nl/voorbereiden/hoe-ziet-het-examen-eruit)
+and [inburgeren.nl](https://www.inburgeren.nl/examen-doen/inhoud-taalexamens-a2-b1-b2.jsp).
 
 ## How it works
 
-- **Unlimited situations.** Every task is newly generated in the official format (short, medium
-  and long answers with the exam's timings). Topics rotate, and the next situation adapts to your
-  recent scores: it targets your weakest criterion and gets harder or easier as you improve.
-- **Speech recognition in the browser.** Whisper runs locally via
-  [transformers.js](https://github.com/huggingface/transformers.js). Your voice never leaves your
-  device. The model (base, small or large-v3 turbo) downloads once and is cached.
-- **Written coaching.** Each answer is scored on *inhoud*, *woordenschat*, *grammatica* and
-  *samenhang* (0 to 3, where 2 is roughly a pass). You get corrections, a model answer and one
-  concrete tip for what to practise next.
-- **Mock exam.** A full exam in the official order and timing, with feedback at the end.
-- **Your own API key.** Situations and coaching come from a language model you choose. Any
-  OpenAI-compatible API works. The key is stored only in your browser.
+- **Unlimited, adaptive practice.** Every exercise is newly written for you. Topics rotate, and
+  the next exercise targets your weakest point and gets easier or harder based on your results.
+- **Clear scoring.** Speaking and writing are scored on the four exam criteria, *inhoud*,
+  *woordenschat*, *grammatica* and *samenhang*, from 0 to 3. A 2 on each is roughly a pass.
+  Quizzes show your percentage, and about 70% is roughly a pass.
+- **Private speech recognition.** For speaking, [Whisper](https://github.com/openai/whisper) runs
+  inside your browser via [transformers.js](https://github.com/huggingface/transformers.js). Your
+  voice never leaves your device.
+- **Listening uses your device's voices.** Fragments are read aloud with the browser's built-in
+  Dutch voice. If your device has no Dutch voice installed, add one in your system's speech
+  settings.
+- **Your progress stays with you.** Results are saved in your browser only. See them under
+  *Progress*.
 
-Pronunciation is not scored, because the coach works from the transcript. The coach points out
-garbled or unexpected words as possible pronunciation issues.
+## Getting started
 
-The tasks are original practice material, not official exam content. Practise with the official
-exams too: [Staatsexamen NT2](https://oefenexamensnt2.nl) and
-[Inburgering](https://www.inburgeren.nl/examen-doen/oefenen.jsp).
+1. Open the [app](https://peterslijkhuis.github.io/OpenLingo/).
+2. Go to **Settings** and paste an API key from [OpenAI](https://platform.openai.com/api-keys), or
+   from any OpenAI-compatible service. The key is stored only in your browser and is used to
+   create exercises and give feedback. A practice session usually costs a few cents.
+3. Choose your level (A2, B1 or B2) and start with any part.
+
+The first speaking exercise downloads the speech model, which is about 250 MB for the default
+"small" model. After that it is cached.
+
+## Good to know
+
+- All exercises are original practice material, not official exam content. Also practise with
+  the official exams: [Staatsexamen NT2](https://oefenexamensnt2.nl) and
+  [Inburgering (DUO)](https://www.inburgeren.nl/examen-doen/oefenen.jsp).
+- Pronunciation is not scored, because feedback works from the transcript.
+- Scores are an indication. The real exams are marked by trained examiners.
 
 ## Development
 
 ```bash
 npm ci --ignore-scripts
-npm run dev      # local server
+npm run dev      # local server at http://localhost:5173
 npm test         # unit tests
 npm run build    # static site in dist/
 ```
 
-## Deployment
-
-`.github/workflows/pages.yml` tests, builds and deploys `main` to GitHub Pages. Enable it once under
-**Settings → Pages → Build and deployment → Source: GitHub Actions**.
+Built with Vite, React and TypeScript, with no backend. Pushes to `main` are tested and deployed to
+GitHub Pages by `.github/workflows/pages.yml`.
 
 ## License
 

@@ -15,7 +15,7 @@ function attempt(level: Level, topic: string, s: Partial<Record<Criterion, Score
 
 describe('adapt', () => {
   it('starts at standard difficulty focused on task completion', () => {
-    const a = adapt([], 'B1', () => 0)
+    const a = adapt([], 'B1', 'spreken', () => 0)
     expect(a).toEqual({ topic: TOPICS.B1[0], focus: 'inhoud', difficulty: 'standard' })
   })
 
@@ -45,7 +45,7 @@ describe('adapt', () => {
 
   it('ignores attempts at other levels', () => {
     const history = Array.from({ length: 5 }, () => attempt('A2', 'weer', { grammatica: 0 }))
-    const a = adapt(history, 'B1', () => 0)
+    const a = adapt(history, 'B1', 'spreken', () => 0)
     expect(a.focus).toBe('inhoud')
     expect(a.difficulty).toBe('standard')
   })
