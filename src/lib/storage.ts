@@ -7,6 +7,9 @@ export interface Settings extends LlmSettings {
   level: Level
   feedbackLanguage: FeedbackLanguage
   whisperModel: WhisperModel
+  /** How pictures for picture tasks are made: free drawings or AI images on the user's key. */
+  pictureSource: 'drawings' | 'ai'
+  imageModel: string
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -16,6 +19,8 @@ export const DEFAULT_SETTINGS: Settings = {
   level: 'B1',
   feedbackLanguage: 'en',
   whisperModel: 'small',
+  pictureSource: 'drawings',
+  imageModel: 'gpt-image-1',
 }
 
 const SETTINGS_KEY = 'openlingo.settings'

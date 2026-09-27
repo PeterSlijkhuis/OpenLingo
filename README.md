@@ -20,7 +20,7 @@ Pick your level on the home screen, then pick an exam part.
 
 | Part | What you do in the app | The real exam |
 | --- | --- | --- |
-| 🗣️ **Spreken** (speaking) | Read a situation and answer out loud within the exam's time limit. Get written feedback, corrections and a model answer. Take a full mock exam. | On a computer. B1: 8 short (20 s) and 8 medium (30 s) answers. B2: 4 short, 8 medium and 1 two-minute talk. A2: 16 questions of about a minute. |
+| 🗣️ **Spreken** (speaking) | Read a situation, or look at pictures to describe, compare or tell as a story, and answer out loud within the exam's time limit. Get written feedback, corrections and a model answer. Take a full mock exam. | On a computer. B1: 8 short (20 s) and 8 medium (30 s) answers. B2: 4 short, 8 medium and 1 two-minute talk. A2: 16 questions of about a minute. |
 | ✍️ **Schrijven** (writing) | Write an email, message or short text. Get corrections, scores and a model answer. | B1/B2: 100 minutes of sentence tasks and writing tasks. A2: 4 writing tasks on paper. |
 | 📖 **Lezen** (reading) | Read an everyday text and answer multiple-choice questions, with an explanation for each answer. | B1/B2: 6 texts with 36 multiple-choice questions. A2: 65 minutes. |
 | 🎧 **Luisteren** (listening) | Listen to a conversation or announcement, answer multiple-choice questions, then read the text you heard. | B1/B2: about 40 multiple-choice questions, each fragment heard once. A2: 45 minutes. |
@@ -39,6 +39,8 @@ and [inburgeren.nl](https://www.inburgeren.nl/examen-doen/inhoud-taalexamens-a2-
 - **Private speech recognition.** For speaking, [Whisper](https://github.com/openai/whisper) runs
   inside your browser via [transformers.js](https://github.com/huggingface/transformers.js). Your
   voice never leaves your device.
+- **Pictures, free or realistic.** Picture tasks come with simple drawings for free. In Settings you
+  can switch to AI images made with your own key, at about a cent per picture.
 - **Listening uses your device's voices.** Fragments are read aloud with the browser's built-in
   Dutch voice. If your device has no Dutch voice installed, add one in your system's speech
   settings.

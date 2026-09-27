@@ -8,6 +8,17 @@ export type QuizSkill = Extract<Skill, 'lezen' | 'luisteren' | 'knm'>
 /** Answer length category, mirroring the official exam task types. */
 export type TaskKind = 'short' | 'medium' | 'long'
 
+/** Picture-based speaking tasks, like the pictures and videos in the exam. */
+export const PICTURE_MODES = ['describe', 'compare', 'story'] as const
+export type PictureMode = (typeof PICTURE_MODES)[number]
+
+export interface Picture {
+  /** What the picture shows, in Dutch. Hidden from the candidate; the examiner uses it. */
+  description: string
+  /** Image URL (a data URL: a generated SVG drawing or an AI image). */
+  src: string
+}
+
 export interface SpeakingTask {
   id: string
   level: Level
@@ -20,6 +31,10 @@ export interface SpeakingTask {
   question: string
   /** What a complete answer covers, in Dutch. Used to score task completion. */
   contentPoints: string[]
+  /** Pictures to talk about, in order. */
+  pictures?: Picture[]
+  /** Shown when AI images failed and drawings are used instead. */
+  pictureNote?: string
 }
 
 export const CRITERIA = ['inhoud', 'woordenschat', 'grammatica', 'samenhang'] as const

@@ -97,6 +97,31 @@ export function SettingsView({ settings, onChange }: Props) {
         </div>
       </section>
 
+      <section className="card">
+        <h3>3 · Pictures</h3>
+        <p className="muted small">
+          Some speaking tasks show pictures to describe, compare or tell as a story, like the exam.
+          Drawings are free. AI images look like real photos and cost about a cent each on your key,
+          so a picture story costs about 4 cents.
+        </p>
+        <label>
+          Pictures
+          <select
+            value={settings.pictureSource}
+            onChange={(e) => set('pictureSource', e.target.value as Settings['pictureSource'])}
+          >
+            <option value="drawings">Simple drawings (free)</option>
+            <option value="ai">AI images (uses your key)</option>
+          </select>
+        </label>
+        {settings.pictureSource === 'ai' && (
+          <label>
+            Image model
+            <input value={settings.imageModel} onChange={(e) => set('imageModel', e.target.value.trim())} />
+          </label>
+        )}
+      </section>
+
       <a className="button primary block" href="#/">
         Done
       </a>

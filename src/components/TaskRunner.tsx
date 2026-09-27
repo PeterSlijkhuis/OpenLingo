@@ -119,6 +119,7 @@ export function TaskRunner({ task, whisperModel, onAnswer, label }: Props) {
         {label ?? `${task.level} · ${kindLabel(task.kind)} · ${task.topic}`}
       </p>
       <p className="situation" lang="nl">{task.situation}</p>
+      <Pictures task={task} />
       <p className="question" lang="nl">{task.question}</p>
 
       {phase === 'reading' && (
@@ -144,6 +145,25 @@ export function TaskRunner({ task, whisperModel, onAnswer, label }: Props) {
         </div>
       )}
     </section>
+  )
+}
+
+/** The task's pictures, numbered when they tell a story in order. */
+export function Pictures({ task }: { task: SpeakingTask }) {
+  const pictures = task.pictures ?? []
+  if (!pictures.length) return null
+  return (
+    <>
+      <div className={`pictures n${pictures.length}`}>
+        {pictures.map((p, i) => (
+          <figure key={i}>
+            <img src={p.src} alt={p.description} lang="nl" />
+            {pictures.length > 1 && <figcaption>{i + 1}</figcaption>}
+          </figure>
+        ))}
+      </div>
+      {task.pictureNote && <p className="notice small">{task.pictureNote}</p>}
+    </>
   )
 }
 
