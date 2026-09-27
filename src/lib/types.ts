@@ -1,5 +1,10 @@
 export type Level = 'A2' | 'B1' | 'B2'
 
+/** Exam parts. KNM (Kennis van de Nederlandse Maatschappij) belongs to the inburgering exam. */
+export const SKILLS = ['spreken', 'schrijven', 'lezen', 'luisteren', 'knm'] as const
+export type Skill = (typeof SKILLS)[number]
+export type QuizSkill = Extract<Skill, 'lezen' | 'luisteren' | 'knm'>
+
 /** Answer length category, mirroring the official exam task types. */
 export type TaskKind = 'short' | 'medium' | 'long'
 
@@ -46,11 +51,50 @@ export interface Feedback {
   coachTip: string
 }
 
+export interface WritingTask {
+  id: string
+  level: Level
+  topic: string
+  /** Context in Dutch, e.g. who you write to and why. */
+  situation: string
+  /** The instruction in Dutch. */
+  task: string
+  contentPoints: string[]
+  minWords: number
+  maxWords: number
+}
+
+export interface QuizQuestion {
+  question: string
+  options: string[]
+  /** Index into options. */
+  answer: number
+  /** Why the answer is right, in the feedback language. */
+  explanation: string
+}
+
+export interface Quiz {
+  id: string
+  skill: QuizSkill
+  level: Level
+  topic: string
+  title: string
+  /** Reading text, or the script that is read aloud for listening. Empty for KNM. */
+  text: string
+  questions: QuizQuestion[]
+}
+
 export interface Attempt {
+  /** Missing on attempts saved before other skills existed: those are speaking. */
+  skill?: Skill
   taskId: string
   level: Level
-  kind: TaskKind
+  kind?: TaskKind
   topic: string
   at: number
-  scores: Record<Criterion, Score>
+  /** Criterion scores for speaking and writing. */
+  scores?: Record<Criterion, Score>
+  /** Right answers for quizzes. */
+  correct?: number
+  total?: number
 }

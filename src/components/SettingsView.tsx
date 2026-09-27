@@ -1,8 +1,6 @@
 import { useState } from 'react'
-import { EXAMS, LEVELS } from '../lib/exams'
 import type { Settings } from '../lib/storage'
 import { MODELS, transcriber, type WhisperModel } from '../lib/transcriber'
-import type { Level } from '../lib/types'
 
 interface Props {
   settings: Settings
@@ -20,7 +18,7 @@ export function SettingsView({ settings, onChange }: Props) {
     transcriber.onProgress = setProgress
     try {
       await transcriber.load(settings.whisperModel)
-      setStatus('Speech recognition is ready.')
+      setStatus('Ready ✓')
     } catch (e) {
       setStatus(e instanceof Error ? e.message : String(e))
     } finally {
@@ -32,19 +30,38 @@ export function SettingsView({ settings, onChange }: Props) {
   return (
     <div className="stack">
       <section className="card">
-        <h3>Exam</h3>
+        <h3>1 · Coach</h3>
+        <p className="muted small">
+          Exercises and feedback come from a language model you choose. Paste an API key from{' '}
+          <a href="https://platform.openai.com/api-keys" target="_blank" rel="noreferrer">
+            OpenAI
+          </a>{' '}
+          or any OpenAI-compatible service. The key is stored only in this browser and only sent to
+          the address below. A practice session usually costs a few cents.
+        </p>
         <label>
-          Level{' '}
-          <select value={settings.level} onChange={(e) => set('level', e.target.value as Level)}>
-            {LEVELS.map((l) => (
-              <option key={l} value={l}>
-                {EXAMS[l].name}
-              </option>
-            ))}
-          </select>
+          API key
+          <input
+            type="password"
+            autoComplete="off"
+            value={settings.apiKey}
+            placeholder="sk-…"
+            onChange={(e) => set('apiKey', e.target.value.trim())}
+          />
         </label>
+        <details>
+          <summary className="small">Other provider or model</summary>
+          <label>
+            API address
+            <input value={settings.baseUrl} onChange={(e) => set('baseUrl', e.target.value.trim())} />
+          </label>
+          <label>
+            Model
+            <input value={settings.model} onChange={(e) => set('model', e.target.value.trim())} />
+          </label>
+        </details>
         <label>
-          Feedback language{' '}
+          Feedback language
           <select
             value={settings.feedbackLanguage}
             onChange={(e) => set('feedbackLanguage', e.target.value as Settings['feedbackLanguage'])}
@@ -56,16 +73,17 @@ export function SettingsView({ settings, onChange }: Props) {
       </section>
 
       <section className="card">
-        <h3>Speech recognition (Whisper, runs in your browser)</h3>
-        <p className="muted">
-          Your voice never leaves your device. The model downloads once and is then cached.
+        <h3>2 · Speech recognition</h3>
+        <p className="muted small">
+          For speaking practice, Whisper runs inside your browser. Your voice never leaves your
+          device. The model downloads once and is then cached.
         </p>
         <label>
-          Model{' '}
+          Model
           <select value={settings.whisperModel} onChange={(e) => set('whisperModel', e.target.value as WhisperModel)}>
             {(Object.keys(MODELS) as WhisperModel[]).map((m) => (
               <option key={m} value={m}>
-                {MODELS[m].label} ({MODELS[m].size})
+                {MODELS[m].label}, {MODELS[m].size}
               </option>
             ))}
           </select>
@@ -75,35 +93,13 @@ export function SettingsView({ settings, onChange }: Props) {
             Download now
           </button>
           {progress !== null && <progress value={progress} max={1} />}
-          {status && <span className="muted">{status}</span>}
+          {status && <span className="small">{status}</span>}
         </div>
       </section>
 
-      <section className="card">
-        <h3>Coach (your own API key)</h3>
-        <p className="muted">
-          Situations and feedback come from a language model you choose. Your key is stored only in
-          this browser and sent only to the address below. Any OpenAI-compatible API works.
-        </p>
-        <label>
-          API key{' '}
-          <input
-            type="password"
-            autoComplete="off"
-            value={settings.apiKey}
-            placeholder="sk-…"
-            onChange={(e) => set('apiKey', e.target.value.trim())}
-          />
-        </label>
-        <label>
-          API address{' '}
-          <input value={settings.baseUrl} onChange={(e) => set('baseUrl', e.target.value.trim())} />
-        </label>
-        <label>
-          Model{' '}
-          <input value={settings.model} onChange={(e) => set('model', e.target.value.trim())} />
-        </label>
-      </section>
+      <a className="button primary block" href="#/">
+        Done
+      </a>
     </div>
   )
 }

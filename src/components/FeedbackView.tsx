@@ -1,33 +1,44 @@
 import { passes } from '../lib/coach'
 import type { Feedback } from '../lib/types'
 
-const SCORE_LABEL = ['insufficient', 'almost', 'sufficient', 'good'] as const
+const SCORE_LABEL = ['Insufficient', 'Almost', 'Sufficient', 'Good'] as const
 
-export function FeedbackView({ feedback, transcript }: { feedback: Feedback; transcript: string }) {
+export function FeedbackView({
+  feedback,
+  transcript,
+  answerLabel = 'What you said',
+}: {
+  feedback: Feedback
+  transcript: string
+  answerLabel?: string
+}) {
   const pass = passes(feedback.scores)
   return (
     <section className="card feedback">
-      <h3>
+      <div className="verdict">
         <span className={pass ? 'badge pass' : 'badge fail'}>{pass ? 'Would pass' : 'Not yet'}</span>
-      </h3>
-      <p>{feedback.summary}</p>
+        <p>{feedback.summary}</p>
+      </div>
 
-      <h4>What you said</h4>
-      <blockquote lang="nl">{transcript || <em>No speech recognised.</em>}</blockquote>
+      <div className="criteria">
+        {feedback.scores.map((s) => (
+          <div key={s.criterion} className="criterion">
+            <div className="criterion-head">
+              <span className="criterion-name">{s.criterion}</span>
+              <span className={`score s${s.score}`}>{SCORE_LABEL[s.score]}</span>
+            </div>
+            <div className="meter" aria-hidden="true">
+              {[0, 1, 2].map((i) => (
+                <span key={i} className={i < s.score ? `on s${s.score}` : ''} />
+              ))}
+            </div>
+            <p className="small">{s.comment}</p>
+          </div>
+        ))}
+      </div>
 
-      <table className="scores">
-        <tbody>
-          {feedback.scores.map((s) => (
-            <tr key={s.criterion}>
-              <th>{s.criterion}</th>
-              <td>
-                <span className={`score s${s.score}`}>{SCORE_LABEL[s.score]}</span>
-              </td>
-              <td>{s.comment}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <h4>{answerLabel}</h4>
+      <blockquote lang="nl">{transcript || <em>Nothing recognised.</em>}</blockquote>
 
       {feedback.corrections.length > 0 && (
         <>
@@ -36,12 +47,14 @@ export function FeedbackView({ feedback, transcript }: { feedback: Feedback; tra
             {feedback.corrections.map((c, i) => (
               <li key={i}>
                 {c.said && (
-                  <>
-                    <s lang="nl">{c.said}</s> →{' '}
-                  </>
+                  <div className="said" lang="nl">
+                    {c.said}
+                  </div>
                 )}
-                <strong lang="nl">{c.better}</strong>
-                {c.why && <div className="muted">{c.why}</div>}
+                <div className="better" lang="nl">
+                  {c.better}
+                </div>
+                {c.why && <div className="muted small">{c.why}</div>}
               </li>
             ))}
           </ul>
@@ -49,10 +62,10 @@ export function FeedbackView({ feedback, transcript }: { feedback: Feedback; tra
       )}
 
       {feedback.coachTip && (
-        <>
-          <h4>Coach tip</h4>
-          <p className="tip">{feedback.coachTip}</p>
-        </>
+        <div className="tip">
+          <strong>Coach tip</strong>
+          <p>{feedback.coachTip}</p>
+        </div>
       )}
 
       {feedback.modelAnswer && (
