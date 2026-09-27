@@ -122,6 +122,31 @@ export function SettingsView({ settings, onChange }: Props) {
         )}
       </section>
 
+      <section className="card">
+        <h3>4 · Listening voices</h3>
+        <p className="muted small">
+          AI voices sound natural: two male and two female voices, so every speaker in a
+          conversation sounds different. They use your key and cost about 1 to 2 cents per
+          fragment. Device voices are free but often robotic.
+        </p>
+        <label>
+          Voices
+          <select
+            value={settings.voiceSource}
+            onChange={(e) => set('voiceSource', e.target.value as Settings['voiceSource'])}
+          >
+            <option value="ai">AI voices (uses your key)</option>
+            <option value="device">This device's voices (free)</option>
+          </select>
+        </label>
+        {settings.voiceSource === 'ai' && (
+          <label>
+            Speech model
+            <input value={settings.voiceModel} onChange={(e) => set('voiceModel', e.target.value.trim())} />
+          </label>
+        )}
+      </section>
+
       <a className="button primary block" href="#/">
         Done
       </a>

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { generateQuiz, scoreQuiz } from '../lib/coach'
 import { SKILL_INFO } from '../lib/exams'
 import { adapt } from '../lib/progress'
-import { hasDutchVoice, speakScript, speechSupported, stopSpeaking } from '../lib/speech'
+import { hasDutchVoice, playWithAiVoices, speakScript, speechSupported, stopSpeaking } from '../lib/speech'
 import type { Settings } from '../lib/storage'
 import type { Attempt, Quiz, QuizSkill } from '../lib/types'
 
@@ -24,6 +24,7 @@ export function QuizPage({ skill, settings, history, onAttempt }: Props) {
   const [recent, setRecent] = useState<string[]>([])
   const [plays, setPlays] = useState(0)
   const [playing, setPlaying] = useState(false)
+  const [voiceNote, setVoiceNote] = useState('')
 
   useEffect(() => stopSpeaking, [])
 
@@ -56,7 +57,13 @@ export function QuizPage({ skill, settings, history, onAttempt }: Props) {
     if (!quiz) return
     setPlays((n) => n + 1)
     setPlaying(true)
-    await speakScript(quiz.text)
+    try {
+      if (settings.voiceSource === 'ai') await playWithAiVoices(settings, quiz.text, quiz.speakers)
+      else await speakScript(quiz.text)
+    } catch (e) {
+      setVoiceNote(`AI voices failed, using your device's voices instead. ${e instanceof Error ? e.message : ''}`)
+      await speakScript(quiz.text)
+    }
     setPlaying(false)
   }
 
@@ -84,13 +91,13 @@ export function QuizPage({ skill, settings, history, onAttempt }: Props) {
         <section className="card intro">
           <p>{info.summary}</p>
           <p className="muted small">Exam format at {settings.level}: {info.format[settings.level]}</p>
-          {skill === 'luisteren' && speechSupported() && !hasDutchVoice() && (
+          {skill === 'luisteren' && settings.voiceSource === 'device' && speechSupported() && !hasDutchVoice() && (
             <p className="notice">
               Your device has no Dutch voice installed, so fragments may sound English. Add a Dutch
               voice in your system's speech settings for the best result.
             </p>
           )}
-          {skill === 'luisteren' && !speechSupported() && (
+          {skill === 'luisteren' && settings.voiceSource === 'device' && !speechSupported() && (
             <p className="notice">This browser cannot read text aloud. Try Chrome, Edge or Safari.</p>
           )}
           <button className="primary" disabled={busy} onClick={() => void next()}>
@@ -118,6 +125,11 @@ export function QuizPage({ skill, settings, history, onAttempt }: Props) {
                 <button className="primary" disabled={playing} onClick={() => void play()}>
                   {playing ? 'Playing…' : plays === 0 ? '▶ Listen' : '▶ Listen again'}
                 </button>
+                {playing && (
+                  <button onClick={stopSpeaking}>
+                    Stop
+                  </button>
+                )}
                 <span className="muted small">
                   {plays === 0
                     ? 'In the exam you hear each fragment once.'
@@ -125,6 +137,7 @@ export function QuizPage({ skill, settings, history, onAttempt }: Props) {
                 </span>
               </div>
             )}
+            {skill === 'luisteren' && voiceNote && <p className="notice small">{voiceNote}</p>}
           </section>
 
           {quiz.questions.map((q, i) => {

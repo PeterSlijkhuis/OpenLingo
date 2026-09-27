@@ -97,7 +97,11 @@ export interface Quiz {
   /** Reading text, or the script that is read aloud for listening. Empty for KNM. */
   text: string
   questions: QuizQuestion[]
+  /** Listening only: speaker name to voice gender, so each speaker gets a fitting voice. */
+  speakers?: Record<string, Gender>
 }
+
+export type Gender = 'male' | 'female'
 
 export interface Attempt {
   /** Missing on attempts saved before other skills existed: those are speaking. */
