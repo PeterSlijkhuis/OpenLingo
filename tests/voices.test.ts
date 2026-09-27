@@ -34,3 +34,14 @@ describe('listening voices', () => {
     expect(blob.size).toBe(3)
   })
 })
+
+describe('script turns', () => {
+  it('splits speakers on separate lines and on one line, and keeps narrator lines', () => {
+    expect(scriptTurns('Welkom bij Radio 1.\nAnna: Hoi Kees! Hoe gaat het?\nKees: Goed.')).toEqual([
+      { speaker: '', text: 'Welkom bij Radio 1.' },
+      { speaker: 'Anna', text: 'Hoi Kees! Hoe gaat het?' },
+      { speaker: 'Kees', text: 'Goed.' },
+    ])
+    expect(scriptTurns('Anna: Hoi. Kees: Dag Anna! Anna: Tot ziens.').map((t) => t.speaker)).toEqual(['Anna', 'Kees', 'Anna'])
+  })
+})

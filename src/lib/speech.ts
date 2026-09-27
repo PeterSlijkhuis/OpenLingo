@@ -1,22 +1,29 @@
 import { generateSpeech, type LlmSettings } from './llm'
 import type { Gender } from './types'
 
-let current: HTMLAudioElement | null = null
+let audio: AudioContext | null = null
 let cancelled = false
 
 /** A short silence between turns, so speakers don't run into each other. */
-const pause = () => new Promise((r) => setTimeout(r, 600))
+const GAP_SECONDS = 0.6
+const pause = () => new Promise((r) => setTimeout(r, GAP_SECONDS * 1000))
 
-/** Split a listening script into turns; "Naam: tekst" lines become separate speakers. */
+const SPEAKER = /(^|[.!?…]["”']?\s+)([A-ZÀ-Ý][\p{L}'-]{0,20}(?: [A-ZÀ-Ý][\p{L}'-]{1,20})?):\s+/gu
+
+/**
+ * Split a listening script into turns. "Naam: tekst" starts a new speaker, also when the model
+ * wrote several turns on one line. A line without a name has no speaker (a narrator).
+ */
 export function scriptTurns(script: string): { speaker: string; text: string }[] {
-  return script
-    .split('\n')
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => {
-      const m = /^([A-ZÀ-Ý][\p{L} .'-]{0,30}):\s+(.+)$/u.exec(line)
-      return m ? { speaker: m[1], text: m[2] } : { speaker: '', text: line }
-    })
+  return script.split('\n').flatMap((line) => {
+    const turns = [{ speaker: '', text: line }]
+    for (const m of line.matchAll(SPEAKER)) {
+      const last = turns[turns.length - 1]
+      last.text = line.slice(line.length - last.text.length, m.index + m[1].length)
+      turns.push({ speaker: m[2], text: line.slice(m.index + m[0].length) })
+    }
+    return turns.map((t) => ({ ...t, text: t.text.trim() })).filter((t) => t.text)
+  })
 }
 
 export function speechSupported(): boolean {
@@ -57,7 +64,8 @@ export async function speakScript(script: string, rate = 0.85): Promise<void> {
 
 export function stopSpeaking(): void {
   cancelled = true
-  current?.pause()
+  void audio?.close()
+  audio = null
   if (speechSupported()) speechSynthesis.cancel()
 }
 
@@ -82,35 +90,47 @@ export function castVoices(turns: { speaker: string }[], genders: Record<string,
 }
 
 // Audio per script, so "Listen again" does not pay twice.
-const cache = new Map<string, Promise<string[]>>()
+const cache = new Map<string, Promise<Blob[]>>()
 
 export interface VoiceSettings extends LlmSettings {
   voiceModel: string
 }
 
-/** Read a script aloud with AI voices, one voice per speaker. Rejects if the speech service fails. */
+/**
+ * Read a script aloud with AI voices, one voice per speaker. All turns go on one Web Audio
+ * timeline with a gap between them, so they can never overlap. Rejects if the speech service fails.
+ */
 export async function playWithAiVoices(settings: VoiceSettings, script: string, genders?: Record<string, Gender>): Promise<void> {
   stopSpeaking()
   cancelled = false
+  // Created inside the click, before any await, so mobile browsers allow the sound.
+  const ctx = new AudioContext()
+  audio = ctx
   const turns = scriptTurns(script)
   const key = `${settings.voiceModel}|${script}`
   if (!cache.has(key)) {
     const cast = castVoices(turns, genders)
-    const urls = Promise.all(
-      turns.map((t) => generateSpeech(settings, settings.voiceModel, cast[t.speaker], t.text).then((b) => URL.createObjectURL(b))),
-    )
-    urls.catch(() => cache.delete(key))
-    cache.set(key, urls)
+    const clips = Promise.all(turns.map((t) => generateSpeech(settings, settings.voiceModel, cast[t.speaker], t.text)))
+    clips.catch(() => cache.delete(key))
+    cache.set(key, clips)
   }
-  const urls = await cache.get(key)!
-  for (const [i, url] of urls.entries()) {
-    if (i) await pause()
+  try {
+    const clips = await cache.get(key)!
+    const buffers = await Promise.all(clips.map(async (c) => ctx.decodeAudioData(await c.arrayBuffer())))
     if (cancelled) return
+    let t = ctx.currentTime + 0.1
+    for (const buffer of buffers) {
+      const source = ctx.createBufferSource()
+      source.buffer = buffer
+      source.connect(ctx.destination)
+      source.start(t)
+      t += buffer.duration + GAP_SECONDS
+    }
     await new Promise<void>((resolve) => {
-      current = new Audio(url)
-      current.onended = current.onerror = current.onpause = () => resolve()
-      current.play().catch(() => resolve())
+      const check = () => (cancelled || ctx.currentTime >= t - GAP_SECONDS ? resolve() : setTimeout(check, 200))
+      check()
     })
+  } finally {
+    if (audio === ctx) stopSpeaking()
   }
-  current = null
 }
