@@ -1,6 +1,12 @@
 import { generateSpeech, type LlmSettings } from './llm'
 import type { Gender } from './types'
 
+let current: HTMLAudioElement | null = null
+let cancelled = false
+
+/** A short silence between turns, so speakers don't run into each other. */
+const pause = () => new Promise((r) => setTimeout(r, 600))
+
 /** Split a listening script into turns; "Naam: tekst" lines become separate speakers. */
 export function scriptTurns(script: string): { speaker: string; text: string }[] {
   return script
@@ -25,28 +31,28 @@ function dutchVoices(): SpeechSynthesisVoice[] {
  * Read a script aloud with the browser's own Dutch voices. Different speakers get different
  * voices when the device has several, otherwise a different pitch.
  */
-export function speakScript(script: string, rate = 0.85): Promise<void> {
-  speechSynthesis.cancel()
+export async function speakScript(script: string, rate = 0.85): Promise<void> {
+  stopSpeaking()
+  cancelled = false
   const voices = dutchVoices()
   const speakers: string[] = []
   const turns = scriptTurns(script)
-  return new Promise((resolve) => {
-    if (!turns.length) return resolve()
-    turns.forEach((turn, i) => {
-      if (!speakers.includes(turn.speaker)) speakers.push(turn.speaker)
-      const n = speakers.indexOf(turn.speaker)
-      const u = new SpeechSynthesisUtterance(turn.text)
-      u.lang = 'nl-NL'
-      u.rate = rate
-      if (voices.length) u.voice = voices[n % voices.length]
-      if (voices.length < 2) u.pitch = n % 2 ? 1.25 : 0.9
-      if (i === turns.length - 1) {
-        u.onend = () => resolve()
-        u.onerror = () => resolve()
-      }
+  for (const [i, turn] of turns.entries()) {
+    if (i) await pause()
+    if (cancelled) return
+    if (!speakers.includes(turn.speaker)) speakers.push(turn.speaker)
+    const n = speakers.indexOf(turn.speaker)
+    const u = new SpeechSynthesisUtterance(turn.text)
+    u.lang = 'nl-NL'
+    u.rate = rate
+    if (voices.length) u.voice = voices[n % voices.length]
+    if (voices.length < 2) u.pitch = n % 2 ? 1.25 : 0.9
+    // One turn at a time: queueing them all lets voices from different speech engines overlap.
+    await new Promise<void>((resolve) => {
+      u.onend = u.onerror = () => resolve()
       speechSynthesis.speak(u)
     })
-  })
+  }
 }
 
 export function stopSpeaking(): void {
@@ -75,8 +81,6 @@ export function castVoices(turns: { speaker: string }[], genders: Record<string,
   return cast
 }
 
-let current: HTMLAudioElement | null = null
-let cancelled = false
 // Audio per script, so "Listen again" does not pay twice.
 const cache = new Map<string, Promise<string[]>>()
 
@@ -100,8 +104,7 @@ export async function playWithAiVoices(settings: VoiceSettings, script: string, 
   }
   const urls = await cache.get(key)!
   for (const [i, url] of urls.entries()) {
-    // A short pause between turns, so speakers don't run into each other.
-    if (i) await new Promise((r) => setTimeout(r, 600))
+    if (i) await pause()
     if (cancelled) return
     await new Promise<void>((resolve) => {
       current = new Audio(url)
