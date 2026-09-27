@@ -51,20 +51,25 @@ export function App() {
         </a>
         <nav>
           <a href="#/progress" className={route === 'progress' ? 'active' : ''}>
-            Progress
+            📈 <span>Progress</span>
           </a>
           <a href="#/settings" className={route === 'settings' ? 'active' : ''}>
-            Settings
+            ⚙️ <span>Settings</span>
           </a>
         </nav>
       </header>
 
-      <main>
+      <main data-skill={isSkill ? route : undefined}>
         {title && (
           <div className="page-head">
             <a href="#/" className="back" aria-label="Back to home">
               ←
             </a>
+            {isSkill && (
+              <span className="icon" aria-hidden="true">
+                {SKILL_INFO[route].icon}
+              </span>
+            )}
             <h2>{title}</h2>
           </div>
         )}

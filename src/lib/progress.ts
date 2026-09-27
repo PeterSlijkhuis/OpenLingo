@@ -98,3 +98,28 @@ export function quizAccuracy(attempts: Attempt[]): number {
   const total = attempts.reduce((n, a) => n + (a.total ?? 0), 0)
   return total ? attempts.reduce((n, a) => n + (a.correct ?? 0), 0) / total : 0
 }
+
+/** Local calendar day, e.g. "2026-9-27". */
+function dayKey(t: number): string {
+  const d = new Date(t)
+  return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`
+}
+
+/** Exercises finished today. */
+export function doneToday(history: Attempt[], now = Date.now()): number {
+  const today = dayKey(now)
+  return history.filter((a) => dayKey(a.at) === today).length
+}
+
+/** Days in a row with practice, ending today (or yesterday, so the streak survives until tonight). */
+export function streak(history: Attempt[], now = Date.now()): number {
+  const days = new Set(history.map((a) => dayKey(a.at)))
+  const day = new Date(now)
+  if (!days.has(dayKey(day.getTime()))) day.setDate(day.getDate() - 1)
+  let n = 0
+  while (days.has(dayKey(day.getTime()))) {
+    n++
+    day.setDate(day.getDate() - 1)
+  }
+  return n
+}
