@@ -214,7 +214,7 @@ export async function generateTask(
 ): Promise<SpeakingTask> {
   const raw = await chatJson(settings, buildTaskPrompt(level, kind, adaptation, recentQuestions, picture), fetchImpl)
   const task = parseTask(raw, level, kind, adaptation.topic, newId(`${level}-${kind}`), picture)
-  return picture && settings.pictureSource === 'ai' ? illustrate(settings, task, fetchImpl) : task
+  return picture && settings.pictureSource === 'ai' && settings.provider === 'openai' ? illustrate(settings, task, fetchImpl) : task
 }
 
 export interface AnswerInfo {

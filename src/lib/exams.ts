@@ -58,7 +58,6 @@ export interface SkillInfo {
   title: string
   /** English name. */
   subtitle: string
-  icon: string
   summary: string
   /** What the official exam part looks like, per level. */
   format: Record<Level, string>
@@ -69,7 +68,6 @@ export const SKILL_INFO: Record<Skill, SkillInfo> = {
   spreken: {
     title: 'Spreken',
     subtitle: 'Speaking',
-    icon: '🗣️',
     summary: 'Answer out loud within the time limit. Whisper transcribes you, a coach gives written feedback.',
     format: {
       A2: 'About 35 minutes on a computer: 16 questions about videos and pictures, about a minute each.',
@@ -80,7 +78,6 @@ export const SKILL_INFO: Record<Skill, SkillInfo> = {
   schrijven: {
     title: 'Schrijven',
     subtitle: 'Writing',
-    icon: '✍️',
     summary: 'Write emails, messages and short texts. Get corrections and a model answer.',
     format: {
       A2: '40 minutes on paper: 4 writing tasks, such as a short letter or a form.',
@@ -91,7 +88,6 @@ export const SKILL_INFO: Record<Skill, SkillInfo> = {
   lezen: {
     title: 'Lezen',
     subtitle: 'Reading',
-    icon: '📖',
     summary: 'Read everyday texts and answer multiple-choice questions, with explanations.',
     format: {
       A2: '65 minutes on a computer: short everyday texts with questions.',
@@ -102,7 +98,6 @@ export const SKILL_INFO: Record<Skill, SkillInfo> = {
   luisteren: {
     title: 'Luisteren',
     subtitle: 'Listening',
-    icon: '🎧',
     summary: 'Listen to conversations and announcements, then answer multiple-choice questions.',
     format: {
       A2: '45 minutes on a computer: videos and audio with questions.',
@@ -113,7 +108,6 @@ export const SKILL_INFO: Record<Skill, SkillInfo> = {
   knm: {
     title: 'KNM',
     subtitle: 'Knowledge of Dutch society',
-    icon: '🏛️',
     summary: 'Multiple-choice questions about work, health, housing, history, government and daily life.',
     format: {
       A2: 'A separate part of inburgering: multiple-choice questions on a computer.',

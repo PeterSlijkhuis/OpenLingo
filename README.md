@@ -39,24 +39,34 @@ and [inburgeren.nl](https://www.inburgeren.nl/examen-doen/inhoud-taalexamens-a2-
 - **Private speech recognition.** For speaking, [Whisper](https://github.com/openai/whisper) runs
   inside your browser via [transformers.js](https://github.com/huggingface/transformers.js). Your
   voice never leaves your device.
-- **Pictures, free or realistic.** Picture tasks come with simple drawings for free. In Settings you
-  can switch to AI images made with your own key, at about a cent per picture.
-- **Natural listening voices.** Fragments are read by two male and two female AI voices on your
-  key, about 1 to 2 cents per fragment, so each speaker sounds different. You can switch to your
-  device's own voices for free in Settings.
+- **Pictures.** Picture tasks come with simple drawings for free. With an OpenAI key you can switch
+  to photo-like AI images, at about a cent per picture.
+- **Listening voices.** Fragments are read by your device's own Dutch voices for free. With an
+  OpenAI key, two male and two female AI voices sound more natural, at about 1 to 2 cents per
+  fragment.
 - **Your progress stays with you.** Results are saved in your browser only. See them under
   *Progress*.
 
 ## Getting started
 
 1. Open the [app](https://peterslijkhuis.github.io/OpenLingo/).
-2. Go to **Settings** and paste an API key from [OpenAI](https://platform.openai.com/api-keys), or
-   from any OpenAI-compatible service. The key is stored only in your browser and is used to
-   create exercises and give feedback. A practice session usually costs a few cents.
-3. Choose your level (A2, B1 or B2) and start with any part.
+2. Choose your level (A2, B1 or B2) and start with any part. That's it: by default everything is
+   free and runs in your browser.
 
-The first speaking exercise downloads the speech model, which is about 250 MB for the default
-"small" model. After that it is cached.
+### Choose your coach
+
+The coach writes the exercises and gives feedback. Pick one under **Settings**:
+
+| Coach | Cost | Good to know |
+| --- | --- | --- |
+| **In your browser** (default) | Free, no account | Runs [Gemma 4](https://huggingface.co/onnx-community/gemma-4-E2B-it-ONNX) on your own device. Downloads about 3 GB once and needs a desktop browser with WebGPU (recent Chrome or Edge). Nothing leaves your computer. Feedback is simpler than with the online options. |
+| **Google Gemini** | Free key, no credit card | Best free quality. Get a key at [Google AI Studio](https://aistudio.google.com/apikey). Free-tier data may be used by Google, and there is a daily limit. Works on phones. |
+| **Hugging Face** | Small free monthly credit | Open models via a [Hugging Face token](https://huggingface.co/settings/tokens). |
+| **OpenAI** | A few cents per session | Also unlocks natural AI voices for listening and photo-like pictures. |
+| **Other** | Depends | Any OpenAI-compatible server, for example Ollama or LM Studio on your own computer. |
+
+Keys are stored only in your browser. Speech recognition is always free and local: the first
+speaking exercise downloads the Whisper model (about 250 MB for the default "small" model).
 
 ## Good to know
 

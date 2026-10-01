@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react'
 import { Home } from './components/Home'
+import { Icon } from './components/Icon'
 import { ProgressView } from './components/ProgressView'
 import { QuizPage } from './components/QuizPage'
 import { SettingsView } from './components/SettingsView'
 import { SpeakingPage } from './components/SpeakingPage'
 import { WritingPage } from './components/WritingPage'
 import { SKILL_INFO } from './lib/exams'
+import { localModel } from './lib/localModel'
+import { needsKey } from './lib/providers'
 import { appendHistory, clearHistory, loadHistory, loadSettings, saveSettings, type Settings } from './lib/storage'
 import { SKILLS, type Attempt, type Skill } from './lib/types'
 
@@ -20,6 +23,9 @@ export function App() {
   const [settings, setSettings] = useState<Settings>(loadSettings)
   const [history, setHistory] = useState<Attempt[]>(loadHistory)
   const [route, setRoute] = useState<Route>(readRoute)
+  const [download, setDownload] = useState<number | null>(null)
+
+  useEffect(() => localModel.subscribe(setDownload), [])
 
   useEffect(() => {
     const onHash = () => {
@@ -51,10 +57,10 @@ export function App() {
         </a>
         <nav>
           <a href="#/progress" className={route === 'progress' ? 'active' : ''}>
-            📈 <span>Progress</span>
+            <Icon name="progress" size={18} /> <span>Progress</span>
           </a>
           <a href="#/settings" className={route === 'settings' ? 'active' : ''}>
-            ⚙️ <span>Settings</span>
+            <Icon name="settings" size={18} /> <span>Settings</span>
           </a>
         </nav>
       </header>
@@ -67,16 +73,23 @@ export function App() {
             </a>
             {isSkill && (
               <span className="icon" aria-hidden="true">
-                {SKILL_INFO[route].icon}
+                <Icon name={route} />
               </span>
             )}
             <h2>{title}</h2>
           </div>
         )}
 
-        {isSkill && !settings.apiKey ? (
+        {download !== null && (
+          <div className="download" role="status">
+            <span>Downloading the free coach to your device, once: {Math.round(download * 100)}%</span>
+            <progress value={download} max={1} />
+          </div>
+        )}
+
+        {isSkill && needsKey(settings) ? (
           <section className="card">
-            <p>Add an API key first, so the coach can create exercises and give feedback.</p>
+            <p>Add your API key in Settings first, or switch to the free coach that runs in your browser.</p>
             <a className="button primary" href="#/settings">
               Go to Settings
             </a>

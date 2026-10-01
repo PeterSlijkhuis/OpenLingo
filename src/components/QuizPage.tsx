@@ -3,7 +3,7 @@ import { generateQuiz, scoreQuiz } from '../lib/coach'
 import { SKILL_INFO } from '../lib/exams'
 import { adapt } from '../lib/progress'
 import { hasDutchVoice, playWithAiVoices, speakScript, speechSupported, stopSpeaking } from '../lib/speech'
-import type { Settings } from '../lib/storage'
+import { aiVoices, type Settings } from '../lib/storage'
 import type { Attempt, Quiz, QuizSkill } from '../lib/types'
 
 interface Props {
@@ -58,7 +58,7 @@ export function QuizPage({ skill, settings, history, onAttempt }: Props) {
     setPlays((n) => n + 1)
     setPlaying(true)
     try {
-      if (settings.voiceSource === 'ai') await playWithAiVoices(settings, quiz.text, quiz.speakers)
+      if (aiVoices(settings)) await playWithAiVoices(settings, quiz.text, quiz.speakers)
       else await speakScript(quiz.text)
     } catch (e) {
       const why = e instanceof Error ? e.message : String(e)
@@ -97,13 +97,13 @@ export function QuizPage({ skill, settings, history, onAttempt }: Props) {
         <section className="card intro">
           <p>{info.summary}</p>
           <p className="muted small">Exam format at {settings.level}: {info.format[settings.level]}</p>
-          {skill === 'luisteren' && settings.voiceSource === 'device' && speechSupported() && !hasDutchVoice() && (
+          {skill === 'luisteren' && !aiVoices(settings) && speechSupported() && !hasDutchVoice() && (
             <p className="notice">
               Your device has no Dutch voice installed, so fragments may sound English. Add a Dutch
               voice in your system's speech settings for the best result.
             </p>
           )}
-          {skill === 'luisteren' && settings.voiceSource === 'device' && !speechSupported() && (
+          {skill === 'luisteren' && !aiVoices(settings) && !speechSupported() && (
             <p className="notice">This browser cannot read text aloud. Try Chrome, Edge or Safari.</p>
           )}
           <button className="primary" disabled={busy} onClick={() => void next()}>
