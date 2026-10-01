@@ -1,5 +1,7 @@
 import type { CSSProperties } from 'react'
 import { LEVELS, OFFICIAL_PRACTICE, SKILL_INFO } from '../lib/exams'
+import { Icon } from './Icon'
+import { needsKey } from '../lib/providers'
 import { doneToday, performance, skillOf, streak } from '../lib/progress'
 import type { Settings } from '../lib/storage'
 import { SKILLS, type Attempt, type Level, type Skill } from '../lib/types'
@@ -49,7 +51,7 @@ export function Home({ settings, history, onLevel }: Props) {
         <div className="hero-text">
           <p className="kicker">NT2 · {LEVEL_NOTE[level]}</p>
           <h1>
-            Oefen voor je <span className="gradient-text">NT2-examen</span>
+            Oefen voor je <span className="accent">NT2-examen</span>
           </h1>
           <p className="saying" lang="nl">
             “{nl}” <span>{en}</span>
@@ -59,14 +61,14 @@ export function Home({ settings, history, onLevel }: Props) {
         <div className="stats">
           <div className="stat">
             <span className="stat-value">{days}</span>
-            <span className="stat-label">{days === 1 ? 'day' : 'days'} in a row 🔥</span>
+            <span className="stat-label">{days === 1 ? 'day' : 'days'} in a row</span>
           </div>
           <div className="stat">
             <span className="ring" style={{ '--p': goal } as CSSProperties} aria-hidden="true" />
             <span className="stat-value">
               {Math.min(today, DAILY_GOAL)}/{DAILY_GOAL}
             </span>
-            <span className="stat-label">{today >= DAILY_GOAL ? 'goal reached ✨' : 'daily goal'}</span>
+            <span className="stat-label">{today >= DAILY_GOAL ? 'daily goal reached' : 'daily goal'}</span>
           </div>
           <div className="stat">
             <span className="stat-value">{history.length}</span>
@@ -90,12 +92,11 @@ export function Home({ settings, history, onLevel }: Props) {
         ))}
       </div>
 
-      {!settings.apiKey && (
+      {needsKey(settings) && (
         <a className="card setup" href="#/settings">
-          <strong>Set up in one minute →</strong>
+          <strong>Add your API key →</strong>
           <span className="muted">
-            Add an API key so the coach can create exercises and give feedback. It stays in this
-            browser.
+            Your coach needs a key, or switch to the free coach that runs in your browser.
           </span>
         </a>
       )}
@@ -107,7 +108,7 @@ export function Home({ settings, history, onLevel }: Props) {
           return (
             <a key={skill} className="card skill" data-skill={skill} href={`#/${skill}`}>
               <span className="icon" aria-hidden="true">
-                {info.icon}
+                <Icon name={skill} size={24} />
               </span>
               <div className="skill-body">
                 <h3>

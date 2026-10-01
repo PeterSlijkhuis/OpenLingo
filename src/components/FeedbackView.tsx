@@ -16,7 +16,7 @@ export function FeedbackView({
   return (
     <section className={`card feedback ${pass ? 'passed' : ''}`}>
       <div className="verdict">
-        <span className={pass ? 'badge pass' : 'badge fail'}>{pass ? '🎉 Would pass' : 'Not yet, keep going'}</span>
+        <span className={pass ? 'badge pass' : 'badge fail'}>{pass ? 'Would pass' : 'Not yet, keep going'}</span>
         <p>{feedback.summary}</p>
       </div>
 

@@ -1,24 +1,27 @@
 import type { FeedbackLanguage } from './coach'
 import type { LlmSettings } from './llm'
+import { PROVIDERS, type Provider } from './providers'
 import type { Attempt, Level } from './types'
 import type { WhisperModel } from './transcriber'
 
 export interface Settings extends LlmSettings {
+  provider: Provider
   level: Level
   feedbackLanguage: FeedbackLanguage
   whisperModel: WhisperModel
   /** How pictures for picture tasks are made: free drawings or AI images on the user's key. */
   pictureSource: 'drawings' | 'ai'
   imageModel: string
-  /** Listening voices: natural AI voices on the user's key, or the device's own voices. */
+  /** Listening voices: natural AI voices on an OpenAI key, or the device's own voices. */
   voiceSource: 'ai' | 'device'
   voiceModel: string
 }
 
 export const DEFAULT_SETTINGS: Settings = {
-  baseUrl: 'https://api.openai.com/v1',
+  provider: 'browser',
+  baseUrl: PROVIDERS.browser.baseUrl,
   apiKey: '',
-  model: 'gpt-4o-mini',
+  model: PROVIDERS.browser.model,
   level: 'B1',
   feedbackLanguage: 'en',
   whisperModel: 'small',
@@ -51,7 +54,12 @@ function write(key: string, value: unknown): void {
 }
 
 export function loadSettings(): Settings {
-  return { ...DEFAULT_SETTINGS, ...read<Partial<Settings>>(SETTINGS_KEY) }
+  const saved = read<Partial<Settings>>(SETTINGS_KEY) ?? {}
+  // Settings saved before providers existed were always an OpenAI-compatible API.
+  if (!saved.provider && saved.apiKey) {
+    saved.provider = saved.baseUrl?.includes('api.openai.com') ? 'openai' : 'custom'
+  }
+  return { ...DEFAULT_SETTINGS, ...saved }
 }
 
 export function saveSettings(settings: Settings): void {
@@ -72,3 +80,7 @@ export function appendHistory(attempt: Attempt): Attempt[] {
 export function clearHistory(): void {
   write(HISTORY_KEY, [])
 }
+
+/** AI voices and AI images exist only on OpenAI; every other provider uses the free device voices and drawings. */
+export const aiVoices = (s: Settings) => s.provider === 'openai' && s.voiceSource === 'ai'
+export const aiImages = (s: Settings) => s.provider === 'openai' && s.pictureSource === 'ai'

@@ -1,3 +1,4 @@
+import { Icon } from './Icon'
 import { LEVELS, SKILL_INFO } from '../lib/exams'
 import { criterionAverages, quizAccuracy, skillOf } from '../lib/progress'
 import { CRITERIA, SKILLS, type Attempt } from '../lib/types'
@@ -30,7 +31,7 @@ export function ProgressView({ history, onClear }: Props) {
               return (
                 <div key={skill} className="progress-row">
                   <div className="progress-title">
-                    <span aria-hidden="true">{info.icon}</span> {info.title}
+                    <span className="inline-icon" data-skill={skill}><Icon name={skill} size={18} /></span> {info.title}
                     <span className="muted small"> · {mine.length} done</span>
                   </div>
                   {mine.some((a) => a.scores) ? (

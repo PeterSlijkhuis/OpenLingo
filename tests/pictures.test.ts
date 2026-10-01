@@ -53,12 +53,12 @@ describe('picture tasks', () => {
 
   it('uses AI images when chosen and falls back to drawings when they fail', async () => {
     const ok = fakeFetch(story)
-    const t = await generateTask({ ...settings, pictureSource: 'ai', imageModel: 'gpt-image-1' }, 'A2', 'medium', adaptation, [], ok.impl, 'story')
+    const t = await generateTask({ ...settings, provider: 'openai' as const, pictureSource: 'ai', imageModel: 'gpt-image-1' }, 'A2', 'medium', adaptation, [], ok.impl, 'story')
     expect(ok.urls.filter((u) => u.endsWith('/images/generations'))).toHaveLength(4)
     expect(t.pictures![0].src).toBe('data:image/png;base64,QUJD')
 
     const bad = fakeFetch(story, 400)
-    const f = await generateTask({ ...settings, pictureSource: 'ai' }, 'A2', 'medium', adaptation, [], bad.impl, 'story')
+    const f = await generateTask({ ...settings, provider: 'openai' as const, pictureSource: 'ai' }, 'A2', 'medium', adaptation, [], bad.impl, 'story')
     expect(f.pictures![0].src.startsWith('data:image/svg+xml')).toBe(true)
     expect(f.pictureNote).toContain('showing drawings')
 
